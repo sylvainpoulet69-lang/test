@@ -2,6 +2,8 @@ const canvas = document.getElementById('court');
 const ctx = canvas.getContext('2d');
 const startBtn = document.getElementById('start');
 const summary = document.getElementById('summary');
+const stats = document.getElementById('stats');
+const progressBar = document.getElementById('progressBar');
 
 const TARGET_RADIUS = 12;
 const NUM_TRIALS = 5;
@@ -11,6 +13,7 @@ let trial = 0;
 let reactionTimes = [];
 let startTime = 0;
 let timerId = null;
+let bestAvg = Number(localStorage.getItem('bestAvg')) || null;
 
 function drawCourt() {
   ctx.fillStyle = '#317a2e';
@@ -59,6 +62,7 @@ canvas.addEventListener('click', (e) => {
     const rt = performance.now() - startTime;
     reactionTimes.push(rt);
     trial++;
+    updateStats();
     clearTarget();
     nextTrial();
   }
@@ -77,6 +81,8 @@ function startSession() {
   trial = 0;
   reactionTimes = [];
   summary.textContent = '';
+  stats.innerHTML = '';
+  progressBar.style.width = '0%';
   clearTarget();
   nextTrial();
 }
@@ -87,9 +93,25 @@ function endSession() {
   if (!reactionTimes.length) return;
   const sum = reactionTimes.reduce((a, b) => a + b, 0);
   const avg = sum / reactionTimes.length;
-  summary.textContent = `Temps de réaction moyen: ${avg.toFixed(0)} ms`;
+  const best = Math.min(...reactionTimes);
+  const worst = Math.max(...reactionTimes);
+  if (bestAvg === null || avg < bestAvg) {
+    bestAvg = avg;
+    localStorage.setItem('bestAvg', bestAvg);
+  }
+  summary.innerHTML =
+    `Temps moyen: ${avg.toFixed(0)} ms<br>` +
+    `Meilleur: ${best.toFixed(0)} ms - Pire: ${worst.toFixed(0)} ms<br>` +
+    `Record: ${bestAvg.toFixed(0)} ms`;
 }
 
 startBtn.addEventListener('click', startSession);
+
+function updateStats() {
+  stats.innerHTML = reactionTimes
+    .map((rt, i) => `Essai ${i + 1}: ${rt.toFixed(0)} ms`)
+    .join('<br>');
+  progressBar.style.width = `${(trial / NUM_TRIALS) * 100}%`;
+}
 
 drawCourt();
