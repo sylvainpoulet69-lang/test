@@ -11,3 +11,11 @@ button{padding:.5rem 1rem;background:#1976d2;color:#fff;border:0;border-radius:4
 #reservations ul{list-style:none;padding:0;}
 #reservations li{background:#fff;margin-bottom:.5rem;padding:.5rem;border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.1);display:flex;justify-content:space-between;align-items:center;}
 #reservations li button{background:#b71c1c;}
+
+.schedule{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:.5rem;margin-top:1rem;}
+.schedule .slot{background:#fff;padding:.5rem;border:1px solid #ccc;border-radius:4px;cursor:pointer;}
+.schedule .slot.booked{background:#ddd;cursor:not-allowed;}
+.schedule .slot.selected{border:2px solid #1976d2;}
+.admin-schedule .slot{min-height:3rem;}
+.admin-schedule .slot.booked{background:#f0f0f0;}
+.booking{background:#1976d2;color:#fff;padding:.25rem;border-radius:4px;}

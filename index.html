@@ -10,6 +10,7 @@
     <h1>Les Acacias</h1>
     <nav>
       <a href="#form">Réserver</a>
+      <a href="admin.html">Admin</a>
     </nav>
   </header>
 
@@ -32,12 +33,9 @@
       <label>Date
         <input type="date" id="date" required />
       </label>
-      <label>Heure
-        <input type="time" id="time" required />
-      </label>
+      <input type="hidden" id="time" required />
       <label>Durée (minutes)
         <select id="duration">
-          <option value="60">60</option>
           <option value="90">90</option>
           <option value="120">120</option>
         </select>
@@ -47,6 +45,7 @@
       </label>
       <button type="submit">Ajouter</button>
     </form>
+    <div id="schedule" class="schedule"></div>
   </section>
 
   <section id="reservations">
