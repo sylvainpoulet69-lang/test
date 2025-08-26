@@ -1,1 +1,451 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tennis Club Les Acacias</title>
+<style>
+:root{
+  --bg:#f5f7fa;
+  --text:#222;
+  --primary:#1e88e5;
+  --accent:#fff;
+  --shadow:0 2px 4px rgba(0,0,0,0.1);
+}
+.dark{
+  --bg:#1e1e1e;
+  --text:#eee;
+  --primary:#90caf9;
+  --accent:#2b2b2b;
+  --shadow:0 2px 4px rgba(0,0,0,0.5);
+  background:var(--bg);
+  color:var(--text);
+}
+body{margin:0;font-family:sans-serif;background:var(--bg);color:var(--text);}
+header.banner{background:var(--primary);color:var(--accent);text-align:center;padding:1rem 0;position:relative;}
+.logo{width:80px;height:80px;border-radius:50%;background:#fff;margin:0 auto 0.5rem;}
+.view{padding:1rem;}
+.hidden{display:none;}
+button, input, select{font-size:1rem;}
+button{cursor:pointer;border:none;border-radius:8px;padding:0.75rem 1rem;background:var(--primary);color:var(--accent);box-shadow:var(--shadow);}
+button:hover{opacity:0.9;}
+button:disabled{opacity:0.5;cursor:not-allowed;}
+.big-btn{width:100%;margin:0.5rem 0;font-size:1.25rem;}
+.small-btn{width:100%;margin:0.25rem 0;font-size:1rem;background:#777;}
+.breadcrumb{margin-bottom:1rem;}
+.date-nav{display:flex;gap:0.5rem;align-items:center;margin-bottom:1rem;}
+.date-nav input{flex:1;}
+.court{margin-bottom:1.5rem;}
+.slots{display:flex;flex-wrap:wrap;gap:0.5rem;}
+.slot{flex:1 1 calc(50% - 0.5rem);background:var(--accent);padding:0.5rem;border-radius:6px;box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:flex-start;}
+.slot .badges{margin-top:0.25rem;display:flex;gap:0.25rem;}
+.badge{background:var(--primary);color:var(--accent);border-radius:4px;padding:0 4px;font-size:0.75rem;}
+.price{background:#4caf50;}
+#toast{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:0.5rem 1rem;border-radius:4px;opacity:0;transition:opacity 0.3s;}
+#toast.show{opacity:1;}
+.dialog-content{padding:1rem;}
+#confirmDialog form{display:flex;flex-direction:column;gap:1rem;}
+#bookingList{list-style:none;padding:0;}
+#bookingList li{background:var(--accent);margin-bottom:0.5rem;padding:0.5rem;border-radius:6px;box-shadow:var(--shadow);}
+#eventsTable{width:100%;border-collapse:collapse;}
+#eventsTable th,#eventsTable td{border:1px solid #ccc;padding:0.5rem;text-align:left;}
+.badge-tournament{background:#ff9800;color:#000;padding:2px 4px;border-radius:4px;font-size:0.75rem;}
+@media (prefers-color-scheme: dark){
+ :root{--bg:#1e1e1e;--text:#eee;--primary:#90caf9;--accent:#2b2b2b;--shadow:0 2px 4px rgba(0,0,0,0.5);}
+}
+</style>
+</head>
+<body>
+<div id="home" class="view">
+  <header class="banner">
+    <div class="logo" aria-label="logo"></div>
+    <h1>Tennis Club Les Acacias</h1>
+  </header>
+  <main>
+    <button id="btnReserve" class="big-btn">Réserver un terrain</button>
+    <button id="btnEvents" class="big-btn">Événements à venir (<span id="eventCount"></span>)</button>
+    <button id="btnContact" class="big-btn">Contacter le club</button>
+    <button id="btnMyBookings" class="small-btn">Mes réservations</button>
+    <button id="btnAccount" class="small-btn">Mon compte</button>
+  </main>
+</div>
 
+<div id="bookingView" class="view hidden">
+  <div class="breadcrumb"><button id="backHome" class="small-btn">Accueil</button> &gt; <span id="breadcrumbSport"></span></div>
+  <div class="date-nav">
+    <button id="prevDay">&lt;</button>
+    <input type="date" id="dateInput">
+    <button id="nextDay">&gt;</button>
+    <button id="todayBtn">Aujourd'hui</button>
+  </div>
+  <div id="courtsContainer"></div>
+</div>
+
+<div id="myBookingsView" class="view hidden">
+  <div class="breadcrumb"><button class="small-btn backHome">Accueil</button> &gt; Mes réservations</div>
+  <ul id="bookingList"></ul>
+</div>
+
+<div id="eventsView" class="view hidden">
+  <div class="breadcrumb"><button class="small-btn backHome">Accueil</button> &gt; Événements</div>
+  <table id="eventsTable">
+    <thead><tr><th>Date</th><th>Nom</th><th>Type</th><th>Frais</th><th>Action</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<div id="accountView" class="view hidden">
+  <div class="breadcrumb"><button class="small-btn backHome">Accueil</button> &gt; Mon compte</div>
+  <form id="profileForm" class="dialog-content">
+    <label>Nom<br><input id="profileName" required></label><br>
+    <label>Email<br><input type="email" id="profileEmail" required></label><br>
+    <label>Téléphone<br><input id="profilePhone" required></label><br>
+    <label><input type="checkbox" id="darkToggle"> Mode sombre</label><br>
+    <button type="submit">Enregistrer</button>
+  </form>
+</div>
+
+<dialog id="sportDialog">
+  <div class="dialog-content">
+    <h2>Choisissez un sport</h2>
+    <div>
+      <button class="sportSelect" data-sport="Padel">Padel</button>
+      <button class="sportSelect" data-sport="Tennis">Tennis</button>
+      <button class="sportSelect" data-sport="Football">Football</button>
+    </div>
+    <button onclick="sportDialog.close()" class="small-btn" style="margin-top:1rem;">Fermer</button>
+  </div>
+</dialog>
+
+<dialog id="contactDialog">
+  <div class="dialog-content">
+    <h2>Contact</h2>
+    <p><strong>Téléphone :</strong> <a href="tel:+33600000000">+33 6 00 00 00 00</a></p>
+    <p><strong>Email :</strong> <a href="mailto:contact@les-acacias.fr">contact@les-acacias.fr</a></p>
+    <p><strong>Adresse :</strong> Chemin des Acacias, 06800</p>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+      <a href="tel:+33600000000" class="small-btn">Appeler</a>
+      <a href="https://maps.app.goo.gl/" target="_blank" class="small-btn">Itinéraire</a>
+      <a href="mailto:contact@les-acacias.fr" class="small-btn">Email</a>
+      <a href="https://les-acacias-tennis-padel-foot.com" target="_blank" class="small-btn">Site Web</a>
+    </div>
+    <button onclick="contactDialog.close()" class="small-btn" style="margin-top:1rem;">Fermer</button>
+  </div>
+</dialog>
+
+<dialog id="confirmDialog">
+  <form method="dialog" class="dialog-content" id="confirmForm">
+    <h2>Confirmer la réservation</h2>
+    <div id="confirmDetails"></div>
+    <label id="playerCountRow" class="hidden">Nombre de joueurs<br><input type="number" id="playerCount" min="1" value="2"></label>
+    <menu style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem;">
+      <button value="cancel" class="small-btn">Annuler</button>
+      <button id="confirmBtn" value="confirm" class="small-btn" style="background:#4caf50;">Confirmer</button>
+    </menu>
+  </form>
+</dialog>
+
+<div id="toast"></div>
+
+<script>
+// TODO: modify tariffs, opening hours, and courts by editing constants below.
+const CLUB = {
+  name: "Tennis Club Les Acacias",
+  phone: "+33 6 00 00 00 00",
+  email: "contact@les-acacias.fr",
+  address: "Chemin des Acacias, 06800",
+  website: "https://les-acacias-tennis-padel-foot.com"
+};
+const OPENING = { start: "08:00", end: "22:30", stepMinutes: 30 };
+const SPORTS = {
+  "Padel": {
+    courts: [{id:"Padel 1"},{id:"Padel 2"},{id:"Padel 3"},{id:"Padel 4"},{id:"Padel 5"},{id:"Padel 6"}],
+    durations: [90, 120],
+    pricingFn: ({startTimeISO, minutes}) => { return dynamicPadelPrice(startTimeISO, minutes); }
+  },
+  "Tennis": {
+    courts: [{id:"Tennis 1"},{id:"Tennis 2"},{id:"Tennis 3"},{id:"Tennis 4"}],
+    durations: [90, 120],
+    pricingFn: ({minutes, players=2}) => (8 * (minutes/60) * players)
+  },
+  "Football": {
+    courts: [{id:"Foot 1"},{id:"Foot 2"},{id:"Foot 3"}],
+    durations: [90, 120],
+    pricingFn: ({minutes}) => (50 * (minutes/60))
+  }
+};
+const LIMITS = { maxActiveBookingsPerUser:4, cancelCutoffHours:24 };
+const EVENTS = [
+  { date: "2025-09-27", title: "P100 Hommes", type:"Tournoi", fee: 20, sport:"Padel" },
+  { date: "2025-10-04", title: "P100 Femmes", type:"Tournoi", fee: 20, sport:"Padel" },
+  { date: "2025-10-25", title: "P100 Mixte", type:"Tournoi", fee: 20, sport:"Padel" },
+  { date: "2025-10-26", title: "P250 Femmes", type:"Tournoi", fee: 20, sport:"Padel" },
+  { date: "2025-11-01", title: "P500 Hommes", type:"Tournoi", fee: 20, sport:"Padel" },
+  { date: "2025-11-02", title: "P25 Hommes", type:"Tournoi", fee: 20, sport:"Padel" },
+  { date: "2025-11-15", title: "P25 Femmes", type:"Tournoi", fee: 20, sport:"Padel" }
+];
+
+function dynamicPadelPrice(startISO, minutes){
+  const start = new Date(startISO);
+  const end = new Date(startISO);
+  end.setMinutes(end.getMinutes()+minutes);
+  const day = start.toISOString().slice(0,10);
+  const threshold = new Date(day+"T17:00:00");
+  let price=0;
+  if(end<=threshold){
+    price = minutes/60*5;
+  }else if(start>=threshold){
+    price = minutes/60*6;
+  }else{
+    const before = (threshold-start)/60000;
+    const after = minutes-before;
+    price = before/60*5 + after/60*6;
+  }
+  return Math.round(price*100)/100;
+}
+
+function loadBookings(){ return JSON.parse(localStorage.getItem('bookings')||'[]'); }
+function saveBookings(b){ localStorage.setItem('bookings', JSON.stringify(b)); }
+function loadProfile(){ return JSON.parse(localStorage.getItem('profile')||'{}'); }
+function saveProfile(p){ localStorage.setItem('profile', JSON.stringify(p)); }
+function loadPrefs(){ return JSON.parse(localStorage.getItem('prefs')||'{}'); }
+function savePrefs(p){ localStorage.setItem('prefs', JSON.stringify(p)); }
+
+function toMinutes(hm){ const [h,m] = hm.split(':').map(Number); return h*60+m; }
+function minutesToHM(min){ const h=Math.floor(min/60).toString().padStart(2,'0'); const m=(min%60).toString().padStart(2,'0'); return `${h}:${m}`; }
+function sameDay(a,b){ return a.slice(0,10)===b.slice(0,10); }
+function addMinutesISO(iso, m){ const d=new Date(iso); d.setMinutes(d.getMinutes()+m); return d.toISOString().slice(0,16); }
+function formatDate(iso){ return new Date(iso).toLocaleDateString('fr-FR',{timeZone:'Europe/Paris'}); }
+function formatTime(iso){ return new Date(iso).toLocaleTimeString('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit'}); }
+
+function isOverlapping(a,b){ return a.start < b.end && b.start < a.end; }
+function createsOneHourGap(candidate, existing, opening){
+  const arr = existing.slice().concat([candidate,{start:toMinutes(opening.start),end:toMinutes(opening.start)},{start:toMinutes(opening.end),end:toMinutes(opening.end)}]);
+  arr.sort((x,y)=>x.start-y.start);
+  for(let i=0;i<arr.length-1;i++){
+    const gap = arr[i+1].start - arr[i].end;
+    if(gap===60) return true;
+  }
+  return false;
+}
+
+function priceFor(sport,startISO,minutes,players){
+  const fn = SPORTS[sport].pricingFn;
+  return Math.round(fn({startTimeISO:startISO, minutes, players})*100)/100;
+}
+
+function toast(msg,type='success'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='show';
+  setTimeout(()=>t.className='',3000);
+}
+
+let currentSport=null;
+function showView(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+function generateSlots(dateISO,sportName,courtId){
+  const sport=SPORTS[sportName];
+  const bookings=loadBookings();
+  const dayBookings=bookings.filter(b=>b.sport===sportName && b.courtId===courtId && b.startISO.startsWith(dateISO));
+  const existing=dayBookings.map(b=>({start:toMinutes(b.startISO.slice(11,16)), end:toMinutes(b.startISO.slice(11,16))+b.minutes}));
+  const userBookings=bookings.filter(b=>b.startISO.startsWith(dateISO));
+  const slots=[];
+  const open=toMinutes(OPENING.start);
+  const close=toMinutes(OPENING.end);
+  for(let start=open; start<close; start+=OPENING.stepMinutes){
+    for(const dur of sport.durations){
+      const end=start+dur;
+      if(end>close) continue;
+      const startHM=minutesToHM(start);
+      const startISO=dateISO+"T"+startHM;
+      const now=new Date();
+      const startDate=new Date(startISO);
+      if(startDate<now) continue;
+      const candidate={start,end};
+      if(existing.some(e=>isOverlapping(candidate,e))) continue;
+      if(createsOneHourGap(candidate,existing,OPENING)) continue;
+      if(userBookings.some(b=>isOverlapping(candidate,{start:toMinutes(b.startISO.slice(11,16)),end:toMinutes(b.startISO.slice(11,16))+b.minutes}))) continue;
+      const price=priceFor(sportName,startISO,dur, sportName==='Tennis'?2:undefined);
+      slots.push({startISO, minutes:dur, price});
+    }
+  }
+  return slots;
+}
+
+function renderSlots(){
+  const date=document.getElementById('dateInput').value;
+  const sportName=currentSport;
+  document.getElementById('breadcrumbSport').textContent=sportName;
+  const container=document.getElementById('courtsContainer');
+  container.innerHTML='';
+  const sport=SPORTS[sportName];
+  sport.courts.forEach(c=>{
+    const sec=document.createElement('section');
+    sec.className='court';
+    const h=document.createElement('h2'); h.textContent=c.id; sec.appendChild(h);
+    const slotsDiv=document.createElement('div'); slotsDiv.className='slots';
+    const slots=generateSlots(date,sportName,c.id);
+    slots.forEach(s=>{
+      const div=document.createElement('button');
+      div.className='slot';
+      div.dataset.startISO=s.startISO; div.dataset.minutes=s.minutes; div.dataset.court=c.id;
+      div.innerHTML=`<span>${formatTime(s.startISO)}</span><div class="badges"><span class="badge">${s.minutes===90?'1h30':'2h'}</span><span class="badge price">${s.price.toFixed(2)} €</span></div>`;
+      div.addEventListener('click',()=>openConfirm(sportName,c.id,s));
+      slotsDiv.appendChild(div);
+    });
+    if(!slots.length){ slotsDiv.textContent='Aucun créneau disponible'; }
+    sec.appendChild(slotsDiv);
+    container.appendChild(sec);
+  });
+}
+
+function openConfirm(sport,court,slot){
+  const details=document.getElementById('confirmDetails');
+  details.innerHTML=`<p>${sport} - ${court}</p><p>${formatDate(slot.startISO)} ${formatTime(slot.startISO)}</p><p>Durée: ${(slot.minutes===90?'1h30':'2h')}</p><p id="priceLine">Prix: ${slot.price.toFixed(2)} €</p>`;
+  const row=document.getElementById('playerCountRow');
+  if(sport==='Tennis') row.classList.remove('hidden'); else row.classList.add('hidden');
+  document.getElementById('playerCount').value=2;
+  confirmDialog.returnValue='cancel';
+  confirmDialog.dataset.sport=sport;
+  confirmDialog.dataset.court=court;
+  confirmDialog.dataset.startISO=slot.startISO;
+  confirmDialog.dataset.minutes=slot.minutes;
+  confirmDialog.dataset.price=slot.price;
+  confirmDialog.showModal();
+}
+
+document.getElementById('playerCount').addEventListener('input',e=>{
+  const sport=confirmDialog.dataset.sport;
+  const startISO=confirmDialog.dataset.startISO;
+  const minutes=parseInt(confirmDialog.dataset.minutes);
+  const players=parseInt(e.target.value)||2;
+  const price=priceFor(sport,startISO,minutes,players);
+  confirmDialog.dataset.price=price;
+  document.getElementById('priceLine').textContent=`Prix: ${price.toFixed(2)} €`;
+});
+
+document.getElementById('confirmForm').addEventListener('close',()=>{
+  // no-op
+});
+
+document.getElementById('confirmBtn').addEventListener('click',()=>{
+  const sport=confirmDialog.dataset.sport;
+  const courtId=confirmDialog.dataset.court;
+  const startISO=confirmDialog.dataset.startISO;
+  const minutes=parseInt(confirmDialog.dataset.minutes);
+  const price=parseFloat(confirmDialog.dataset.price);
+  const players=(sport==='Tennis')?parseInt(document.getElementById('playerCount').value)||2:undefined;
+  const now=new Date();
+  const startDate=new Date(startISO);
+  if(startDate<now){toast('Créneau dans le passé','error');return;}
+  const bookings=loadBookings();
+  if(bookings.filter(b=>new Date(b.startISO)>now).length>=LIMITS.maxActiveBookingsPerUser){toast('Limite de réservations atteinte','error');return;}
+  const candidate={start:toMinutes(startISO.slice(11,16)), end:toMinutes(startISO.slice(11,16))+minutes};
+  const date=startISO.slice(0,10);
+  const existingCourt=bookings.filter(b=>b.sport===sport && b.courtId===courtId && b.startISO.startsWith(date)).map(b=>({start:toMinutes(b.startISO.slice(11,16)), end:toMinutes(b.startISO.slice(11,16))+b.minutes}));
+  if(existingCourt.some(e=>isOverlapping(candidate,e))){toast('Créneau déjà réservé','error');return;}
+  if(createsOneHourGap(candidate,existingCourt,OPENING)){toast('Créerait un trou de 1h','error');return;}
+  if(bookings.some(b=>isOverlapping(candidate,{start:toMinutes(b.startISO.slice(11,16)),end:toMinutes(b.startISO.slice(11,16))+b.minutes}))){toast('Vous avez déjà une réservation qui se chevauche','error');return;}
+  const id=Date.now()+""+Math.random().toString(16).slice(2);
+  bookings.push({id,sport,courtId,startISO,minutes,price,players});
+  saveBookings(bookings);
+  toast('✅ Réservation confirmée');
+  confirmDialog.close();
+  renderSlots();
+  renderBookings();
+});
+
+function renderBookings(){
+  const list=document.getElementById('bookingList');
+  list.innerHTML='';
+  const bookings=loadBookings().sort((a,b)=>new Date(a.startISO)-new Date(b.startISO));
+  const now=new Date();
+  bookings.forEach(b=>{
+    const li=document.createElement('li');
+    li.innerHTML=`<strong>${b.sport}</strong> - ${b.courtId}<br>${formatDate(b.startISO)} ${formatTime(b.startISO)}<br>Durée: ${b.minutes===90?'1h30':'2h'} - Prix: ${b.price.toFixed(2)} €`;
+    const btn=document.createElement('button');
+    btn.textContent='Annuler';
+    const diff=(new Date(b.startISO)-now)/3600000;
+    if(diff>LIMITS.cancelCutoffHours){
+      btn.addEventListener('click',()=>{
+        const updated=loadBookings().filter(x=>x.id!==b.id);
+        saveBookings(updated);
+        toast('Réservation annulée');
+        renderBookings();
+        if(currentSport) renderSlots();
+      });
+    }else{
+      btn.disabled=true; btn.title='Annulation impossible à moins de 24h';
+    }
+    li.appendChild(document.createElement('br'));
+    li.appendChild(btn);
+    list.appendChild(li);
+  });
+}
+
+function renderEvents(){
+  document.getElementById('eventCount').textContent=EVENTS.length;
+  const tbody=document.querySelector('#eventsTable tbody');
+  tbody.innerHTML='';
+  EVENTS.forEach(ev=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${new Date(ev.date).toLocaleDateString('fr-FR')}</td><td>${ev.title}</td><td><span class="badge-tournament">${ev.type}</span></td><td>${ev.fee.toFixed(2)} €</td><td><button class="small-btn" disabled>S'inscrire — bientôt</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function initProfile(){
+  const p=loadProfile();
+  document.getElementById('profileName').value=p.name||'';
+  document.getElementById('profileEmail').value=p.email||'';
+  document.getElementById('profilePhone').value=p.phone||'';
+  const prefs=loadPrefs();
+  if(prefs.theme==='dark') document.body.classList.add('dark');
+  document.getElementById('darkToggle').checked=document.body.classList.contains('dark');
+}
+
+document.getElementById('profileForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  saveProfile({name:profileName.value,email:profileEmail.value,phone:profilePhone.value});
+  const prefs=loadPrefs(); prefs.theme=document.getElementById('darkToggle').checked?'dark':'light'; savePrefs(prefs);
+  document.body.classList.toggle('dark',prefs.theme==='dark');
+  toast('Profil sauvegardé');
+});
+
+document.getElementById('btnReserve').addEventListener('click',()=>{sportDialog.showModal();});
+Array.from(document.getElementsByClassName('sportSelect')).forEach(btn=>btn.addEventListener('click',e=>{
+  currentSport=e.target.dataset.sport;
+  savePrefs({...loadPrefs(),sport:currentSport});
+  sportDialog.close();
+  document.getElementById('dateInput').value=new Date().toISOString().slice(0,10);
+  showView('bookingView');
+  renderSlots();
+}));
+
+document.getElementById('btnEvents').addEventListener('click',()=>{renderEvents();showView('eventsView');});
+
+document.getElementById('btnContact').addEventListener('click',()=>contactDialog.showModal());
+document.querySelectorAll('.backHome').forEach(btn=>btn.addEventListener('click',()=>showView('home')));
+
+document.getElementById('btnMyBookings').addEventListener('click',()=>{renderBookings();showView('myBookingsView');});
+
+document.getElementById('btnAccount').addEventListener('click',()=>{initProfile();showView('accountView');});
+
+document.getElementById('backHome').addEventListener('click',()=>showView('home'));
+
+document.getElementById('prevDay').addEventListener('click',()=>{const d=new Date(dateInput.value);d.setDate(d.getDate()-1);dateInput.value=d.toISOString().slice(0,10);renderSlots();});
+
+document.getElementById('nextDay').addEventListener('click',()=>{const d=new Date(dateInput.value);d.setDate(d.getDate()+1);dateInput.value=d.toISOString().slice(0,10);renderSlots();});
+
+document.getElementById('todayBtn').addEventListener('click',()=>{dateInput.value=new Date().toISOString().slice(0,10);renderSlots();});
+
+document.getElementById('dateInput').addEventListener('change',renderSlots);
+
+renderEvents(); // initialize event count
+initProfile();
+</script>
+</body>
+</html>
