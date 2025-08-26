@@ -33,7 +33,8 @@
       <label>Date
         <input type="date" id="date" required />
       </label>
-      <input type="hidden" id="time" required />
+      <input type="hidden" id="time" name="time" required />
+      <div id="selectedSlot" class="selected-slot"></div>
       <label>Durée (minutes)
         <select id="duration">
           <option value="90">90</option>
@@ -43,13 +44,22 @@
       <label>Nom
         <input type="text" id="name" required />
       </label>
-      <button type="submit">Ajouter</button>
+      <button type="submit" id="submitBtn">Ajouter</button>
+      <button type="button" id="cancelEdit" class="secondary" hidden>Annuler</button>
     </form>
     <div id="schedule" class="schedule"></div>
   </section>
 
   <section id="reservations">
     <h2>Réservations</h2>
+    <label>Filtrer par sport
+      <select id="filterSport">
+        <option value="all">Tous</option>
+        <option value="padel">Padel</option>
+        <option value="tennis">Tennis</option>
+        <option value="foot">Foot</option>
+      </select>
+    </label>
     <ul id="list"></ul>
   </section>
 
