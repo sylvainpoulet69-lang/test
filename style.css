@@ -8,9 +8,13 @@ section{padding:2rem 1rem;max-width:800px;margin:auto;}
 form{display:grid;gap:1rem;}
 form label{display:flex;flex-direction:column;font-weight:bold;}
 button{padding:.5rem 1rem;background:#1976d2;color:#fff;border:0;border-radius:4px;cursor:pointer;}
+#reservations label{display:flex;flex-direction:column;font-weight:bold;margin-bottom:1rem;}
+#reservations select{max-width:200px;}
+#selectedSlot{margin-top:-.5rem;margin-bottom:.5rem;font-weight:bold;color:#1976d2;}
+.secondary{background:#777;}
 #reservations ul{list-style:none;padding:0;}
 #reservations li{background:#fff;margin-bottom:.5rem;padding:.5rem;border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.1);display:flex;justify-content:space-between;align-items:center;}
-#reservations li button{background:#b71c1c;}
+#reservations li .delete{background:#b71c1c;}
 
 .schedule{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:.5rem;margin-top:1rem;}
 .schedule .slot{background:#fff;padding:.5rem;border:1px solid #ccc;border-radius:4px;cursor:pointer;}
