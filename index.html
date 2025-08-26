@@ -1,93 +1,59 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<title>Les Acacias - Réservation</title>
-<style>
-body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f5f5f5;color:#222;}
-a,button{cursor:pointer}
-#topbar{position:sticky;top:0;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.1);display:flex;justify-content:space-between;align-items:center;padding:.5rem 1rem;z-index:1000;}
-#topbar nav button{margin-right:.5rem;padding:.25rem .5rem;border:0;background:#e0e0e0;border-radius:4px;}
-#breadcrumbs{font-size:.9rem;}
-main{padding:1rem;}
-.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;}
-.card{background:#fff;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,.1);padding:1rem;display:flex;flex-direction:column;gap:.5rem;}
-.card h2{margin:0;}
-.badge{display:inline-block;background:#1976d2;color:#fff;padding:.2rem .4rem;border-radius:4px;font-size:.75rem;}
-.court{margin-bottom:1rem;}
-.slot-card{background:#fff;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.1);padding:.5rem;margin:.25rem 0;display:flex;align-items:center;justify-content:space-between;}
-.slot-card .left{display:flex;align-items:center;}
-.slot-card .left span{margin-right:.5rem;}
-.slot-card .price{font-weight:bold;margin-right:.5rem;}
-#planning{position:relative;overflow:auto;background:#fff;border:1px solid #ccc;height:600px;}
-.court-col{position:relative;flex:1;border-right:1px solid #ddd;}
-.court-header{position:sticky;top:0;background:#fff;border-bottom:1px solid #ddd;text-align:center;font-weight:bold;z-index:2;}
-.col-wrap{display:flex;position:relative;height:100%;}
-.time-lines{position:absolute;left:0;right:0;height:100%;pointer-events:none;}
-.hour-line,.half-line{position:absolute;left:0;right:0;border-top:1px solid #e0e0e0;}
-.hour-line{border-top-width:2px;}
-.booking{position:absolute;background:#1976d2;color:#fff;border-radius:4px;padding:2px 4px;font-size:12px;cursor:grab;user-select:none;overflow:hidden;}
-.booking.invalid{background:#b71c1c;}
-.booking.dragging{opacity:.7;}
-.admin-header{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1rem;}
-.admin-header input[type=date]{padding:.25rem;}
-.admin-header select{padding:.25rem;}
-.admin-header input[type=search]{padding:.25rem;flex:1;}
-#toast{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:.5rem 1rem;border-radius:4px;opacity:0;transition:opacity .3s;z-index:2000;}
-#toast.show{opacity:1;}
-</style>
+  <meta charset="UTF-8" />
+  <title>Les Acacias - Réservation</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<header id="topbar">
-  <div id="breadcrumbs">Accueil</div>
-  <nav id="shortcuts">
-    <button data-go="home">Accueil</button>
-    <button data-go="padel">Padel</button>
-    <button data-go="tennis">Tennis</button>
-    <button data-go="foot">Foot</button>
-    <button data-go="admin">Admin</button>
-  </nav>
-</header>
-<main id="view"></main>
-<div id="toast"></div>
-<script>
-const STORAGE_KEY='acacias-bookings';
-const DAY_START=timeToMin('08:00');
-const DAY_END=timeToMin('22:30');
-const STEP=30;
-const DURATIONS=[60,90,120];
-const SPORTS={
-  padel:{name:'Padel',courts:['Padel 1','Padel 2','Padel 3','Padel 4','Padel 5','Padel 6']},
-  tennis:{name:'Tennis',courts:['Tennis 1','Tennis 2','Tennis 3','Tennis 4']},
-  foot:{name:'Foot',courts:['Foot 1','Foot 2','Foot 3']}
-};
-function timeToMin(t){const[h,m]=t.split(':').map(Number);return h*60+m;}
-function minToTime(m){const h=(''+Math.floor(m/60)).padStart(2,'0');const mi=(''+(m%60)).padStart(2,'0');return h+':'+mi;}
-function minutesClampToGrid(m){return Math.round(m/STEP)*STEP;}
-function calcPrice(startMin,durationMin){let rate=4;if(startMin<17*60)rate=5;else if(startMin<20*60)rate=6;let price=rate*durationMin/60;return Math.round(price*2)/2;}
-function loadState(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY));}catch(e){return null;}}
-function saveState(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}
-function todayISO(){return new Date().toISOString().slice(0,10);}
-let state=loadState();
-if(!state){state={sport:null,date:todayISO(),reservations:[]};seed();saveState();}
-let view='home';
-function reservationsFor(sport,iso,courtIndex){return state.reservations.filter(r=>r.sport===sport&&r.dateISO===iso&&(courtIndex==null||r.courtIndex===courtIndex));}
-function collisions(list,candidate,ignoreId){return list.some(r=>r.id!==ignoreId && !(candidate.endMin<=r.startMin || candidate.startMin>=r.endMin));}
-function violatesOneHourGapRule(list,candidate,ignoreId){const arr=list.filter(r=>r.id!==ignoreId).concat(candidate).sort((a,b)=>a.startMin-b.startMin);for(let i=0;i<arr.length-1;i++){if(arr[i+1].startMin-arr[i].endMin===60)return true;}return false;}
-function generateAvailabilityForCourt(sport,iso,courtIndex,durationMin){const res=reservationsFor(sport,iso,courtIndex);const slots=[];for(let start=DAY_START;start<=DAY_END-durationMin;start+=STEP){const cand={startMin:start,endMin:start+durationMin,courtIndex};if(cand.endMin>DAY_END)continue;if(collisions(res,cand))continue;if(violatesOneHourGapRule(res,cand))continue;slots.push(cand);}return slots;}
-document.querySelectorAll('#shortcuts button').forEach(btn=>{btn.addEventListener('click',()=>{const g=btn.dataset.go;if(g==='home')navigate('home');else if(g==='admin')navigate('admin',state.sport||'padel');else navigate('client',g);});});
-function navigate(v,s){if(s)state.sport=s;view=v;render();}
-function updateBreadcrumbs(){let parts=['Accueil'];if(view==='client'||view==='admin'){parts.push(SPORTS[state.sport].name);}if(view==='client')parts.push('Client');if(view==='admin')parts.push('Admin');document.getElementById('breadcrumbs').textContent=parts.join(' > ');}
-function render(){updateBreadcrumbs();if(view==='home')renderHome();else if(view==='client')renderClient();else if(view==='admin')renderAdmin();}
-function renderHome(){const root=document.getElementById('view');root.innerHTML='';const grid=document.createElement('div');grid.className='card-grid';Object.entries(SPORTS).forEach(([key,val])=>{const card=document.createElement('div');card.className='card';card.innerHTML=`<h2>${val.name}</h2><div>08:00 → 22:30</div><div class="badge">Pas de trou d'1h</div><button data-act="client" data-sport="${key}">Réserver (côté client)</button><button data-act="admin" data-sport="${key}">Planning Admin</button>`;grid.appendChild(card);});root.appendChild(grid);root.querySelectorAll('button[data-act]').forEach(b=>{b.onclick=()=>navigate(b.dataset.act,b.dataset.sport);});}
-function renderClient(){const root=document.getElementById('view');const sport=state.sport;const sportData=SPORTS[sport];root.innerHTML='';const header=document.createElement('div');header.className='admin-header';header.innerHTML=`<h2 style="margin-right:auto;">${sportData.name}</h2><button id="prevDay">&lt;</button><input type="date" id="dateSel" value="${state.date}"><button id="nextDay">&gt;</button><button id="today">Aujourd'hui</button>`;root.appendChild(header);header.querySelector('#prevDay').onclick=()=>{changeDate(-1);};header.querySelector('#nextDay').onclick=()=>{changeDate(1);};header.querySelector('#today').onclick=()=>{state.date=todayISO();render();};header.querySelector('#dateSel').onchange=e=>{state.date=e.target.value;render();};sportData.courts.forEach((name,idx)=>{const div=document.createElement('div');div.className='court';const h=document.createElement('h3');h.textContent=name;div.appendChild(h);DURATIONS.forEach(dur=>{const slots=generateAvailabilityForCourt(sport,state.date,idx,dur);slots.forEach(s=>{const card=document.createElement('div');card.className='slot-card';const left=document.createElement('div');left.className='left';left.innerHTML=`<span>🕘</span><span>${minToTime(s.startMin)}</span>`;const badge=document.createElement('span');badge.className='badge';badge.textContent=dur===60?'1h':dur===90?'1h30':'2h';const price=document.createElement('span');price.className='price';price.textContent=calcPrice(s.startMin,dur)+' €';const btn=document.createElement('button');btn.textContent='Réserver';btn.onclick=()=>{const name=prompt('Nom ?');if(!name)return;const reservation={id:'r'+Date.now(),sport,dateISO:state.date,courtIndex:idx,startMin:s.startMin,endMin:s.startMin+dur,name};const list=reservationsFor(sport,state.date,idx);if(collisions(list,reservation)||violatesOneHourGapRule(list,reservation))return;state.reservations.push(reservation);saveState();render();};card.appendChild(left);card.appendChild(badge);card.appendChild(price);card.appendChild(btn);div.appendChild(card);});});root.appendChild(div);});}
-function changeDate(delta){const d=new Date(state.date);d.setDate(d.getDate()+delta);state.date=d.toISOString().slice(0,10);render();}
-function renderAdmin(){const root=document.getElementById('view');const sport=state.sport||'padel';const sportData=SPORTS[sport];root.innerHTML='';const header=document.createElement('div');header.className='admin-header';header.innerHTML=`<h2>Admin • ${sportData.name}</h2><button id="prevDay">&lt;</button><input type="date" id="dateSel" value="${state.date}"><button id="nextDay">&gt;</button><button id="today">Aujourd'hui</button><select id="sportSel"></select><input type="search" id="search" placeholder="Recherche nom"><button id="csvBtn">Export CSV</button>`;root.appendChild(header);const sel=header.querySelector('#sportSel');Object.keys(SPORTS).forEach(k=>{const opt=document.createElement('option');opt.value=k;opt.textContent=SPORTS[k].name;if(k===sport)opt.selected=true;sel.appendChild(opt);});header.querySelector('#prevDay').onclick=()=>{changeDate(-1);};header.querySelector('#nextDay').onclick=()=>{changeDate(1);};header.querySelector('#today').onclick=()=>{state.date=todayISO();render();};header.querySelector('#dateSel').onchange=e=>{state.date=e.target.value;render();};sel.onchange=e=>{state.sport=e.target.value;render();};header.querySelector('#search').oninput=renderAdmin;header.querySelector('#csvBtn').onclick=exportCsv;const planning=document.createElement('div');planning.id='planning';const wrap=document.createElement('div');wrap.className='col-wrap';planning.appendChild(wrap);root.appendChild(planning);const cols=[];const totalHeight=(DAY_END-DAY_START)/STEP*20;sportData.courts.forEach((cname,idx)=>{const col=document.createElement('div');col.className='court-col';col.style.height=totalHeight+'px';col.dataset.index=idx;const head=document.createElement('div');head.className='court-header';head.textContent=cname;col.appendChild(head);for(let t=DAY_START;t<=DAY_END;t+=STEP){const line=document.createElement('div');line.className=t%60===0?'hour-line':'half-line';line.style.top=((t-DAY_START)/STEP*20)+'px';col.appendChild(line);}cols.push(col);wrap.appendChild(col);});const search=header.querySelector('#search').value.toLowerCase();const current=reservationsFor(sport,state.date);current.forEach(res=>{if(search && !res.name.toLowerCase().includes(search))return;const el=document.createElement('div');el.className='booking';el.tabIndex=0;el.textContent=`${minToTime(res.startMin)}-${minToTime(res.endMin)} • ${res.name}`;const top=((res.startMin-DAY_START)/STEP*20);const height=((res.endMin-res.startMin)/STEP*20);el.style.top=top+'px';el.style.height=height+'px';const col=cols[res.courtIndex];col.appendChild(el);makeDraggable(el,cols,cols.length,col.getBoundingClientRect().width,res);});}
-function exportCsv(){const rows=['date,sport,terrain,start,end,durationMin,price,name'];state.reservations.filter(r=>r.sport===state.sport&&r.dateISO===state.date).forEach(r=>{rows.push([r.dateISO,state.sport,SPORTS[state.sport].courts[r.courtIndex],minToTime(r.startMin),minToTime(r.endMin),r.endMin-r.startMin,calcPrice(r.startMin,r.endMin-r.startMin),r.name].join(','));});const blob=new Blob([rows.join('\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${state.sport}-${state.date}.csv`;a.click();}
-function makeDraggable(el,columns,colsCount,colWidth,res){let startX,startY,startCourt,startStart,dragging=false;el.addEventListener('pointerdown',e=>{e.preventDefault();dragging=true;startX=e.clientX;startY=e.clientY;startCourt=res.courtIndex;startStart=res.startMin;el.setPointerCapture(e.pointerId);el.classList.add('dragging');});el.addEventListener('pointermove',e=>{if(!dragging)return;const dx=e.clientX-startX;const dy=e.clientY-startY;const courtShift=Math.round(dx/colWidth);const minShift=minutesClampToGrid(startStart+Math.round(dy/20)*STEP)-startStart;const newStart=startStart+minShift;const newCourt=Math.max(0,Math.min(colsCount-1,startCourt+courtShift));const cand={startMin:newStart,endMin:newStart+(res.endMin-res.startMin),courtIndex:newCourt};const list=reservationsFor(state.sport,state.date,newCourt);const invalid=newStart<DAY_START||cand.endMin>DAY_END||collisions(list,cand,res.id)||violatesOneHourGapRule(list,cand,res.id);el.classList.toggle('invalid',invalid);el.style.transform=`translate(${courtShift*colWidth}px,${minShift/STEP*20}px)`;el.dataset.newStart=newStart;el.dataset.newCourt=newCourt;el.dataset.invalid=invalid;});el.addEventListener('pointerup',e=>{if(!dragging)return;dragging=false;el.classList.remove('dragging');el.releasePointerCapture(e.pointerId);const invalid=el.dataset.invalid==='true';el.style.transform='';el.classList.remove('invalid');if(!invalid){res.startMin=parseInt(el.dataset.newStart);res.endMin=res.startMin+(res.endMin-startStart);res.courtIndex=parseInt(el.dataset.newCourt);saveState();renderAdmin();showToast(`Déplacé : ${SPORTS[state.sport].courts[res.courtIndex]} • ${minToTime(res.startMin)}–${minToTime(res.endMin)}`);}else renderAdmin();});el.addEventListener('keydown',e=>{if(e.key==='ArrowUp')moveBy(-STEP);if(e.key==='ArrowDown')moveBy(STEP);if(e.key==='ArrowLeft')changeCourt(-1);if(e.key==='ArrowRight')changeCourt(1);});el.ondblclick=()=>{const val=prompt('Durée 60/90/120 ou "sup"',res.endMin-res.startMin);if(val===null)return;if(val.toLowerCase().startsWith('sup')){if(confirm('Supprimer ?')){state.reservations=state.reservations.filter(r=>r.id!==res.id);saveState();renderAdmin();}return;}const nd=parseInt(val);if(!DURATIONS.includes(nd))return;const cand={startMin:res.startMin,endMin:res.startMin+nd,courtIndex:res.courtIndex};const list=reservationsFor(state.sport,state.date,res.courtIndex);if(cand.endMin>DAY_END||collisions(list,cand,res.id)||violatesOneHourGapRule(list,cand,res.id))return;res.endMin=cand.endMin;saveState();renderAdmin();};function moveBy(delta){const cand={startMin:res.startMin+delta,endMin:res.endMin+delta,courtIndex:res.courtIndex};const list=reservationsFor(state.sport,state.date,res.courtIndex);if(cand.startMin<DAY_START||cand.endMin>DAY_END)return;if(collisions(list,cand,res.id)||violatesOneHourGapRule(list,cand,res.id))return;res.startMin+=delta;res.endMin+=delta;saveState();renderAdmin();}function changeCourt(dir){const nc=res.courtIndex+dir;if(nc<0||nc>=columns.length)return;const cand={startMin:res.startMin,endMin:res.endMin,courtIndex:nc};const list=reservationsFor(state.sport,state.date,nc);if(collisions(list,cand,res.id)||violatesOneHourGapRule(list,cand,res.id))return;res.courtIndex=nc;saveState();renderAdmin();}}
-function showToast(text){const t=document.getElementById('toast');t.textContent=text;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
-function seed(){function add(court,start,end){state.reservations.push({id:'s'+Math.random(),sport:'padel',dateISO:state.date,courtIndex:court,startMin:timeToMin(start),endMin:timeToMin(end),name:'aaa'});}add(0,'10:00','11:00');add(0,'12:00','13:00');add(0,'14:00','16:00');add(2,'09:00','10:30');add(3,'17:00','18:30');}
-render();
-</script>
+  <header class="site-header">
+    <h1>Les Acacias</h1>
+    <nav>
+      <a href="#form">Réserver</a>
+    </nav>
+  </header>
+
+  <section id="hero">
+    <h2>Réservez votre terrain de sport</h2>
+    <p>Padel, Tennis ou Foot, choisissez votre terrain et réservez en ligne.</p>
+    <a href="#form" class="btn">Réserver maintenant</a>
+  </section>
+
+  <section id="form">
+    <h2>Nouvelle réservation</h2>
+    <form id="bookingForm">
+      <label>Sport
+        <select id="sport">
+          <option value="padel">Padel</option>
+          <option value="tennis">Tennis</option>
+          <option value="foot">Foot</option>
+        </select>
+      </label>
+      <label>Date
+        <input type="date" id="date" required />
+      </label>
+      <label>Heure
+        <input type="time" id="time" required />
+      </label>
+      <label>Durée (minutes)
+        <select id="duration">
+          <option value="60">60</option>
+          <option value="90">90</option>
+          <option value="120">120</option>
+        </select>
+      </label>
+      <label>Nom
+        <input type="text" id="name" required />
+      </label>
+      <button type="submit">Ajouter</button>
+    </form>
+  </section>
+
+  <section id="reservations">
+    <h2>Réservations</h2>
+    <ul id="list"></ul>
+  </section>
+
+  <script src="app.js"></script>
 </body>
 </html>
