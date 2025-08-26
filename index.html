@@ -2,217 +2,90 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tennis Club Les Acacias</title>
+<title>Réservations Padel/Tennis</title>
 <style>
-:root{
-  --bg:#f5f7fa;
-  --text:#222;
-  --primary:#1976d2;
-  --padel:#1976d2;
-  --tennis:#388e3c;
-  --foot:#757575;
-  --accent:#fff;
-  --shadow:0 2px 4px rgba(0,0,0,0.1);
-  --cell:40px; /* hauteur 30min */
-}
-.dark{
-  --bg:#1e1e1e;
-  --text:#eee;
-  --primary:#90caf9;
-  --accent:#2b2b2b;
-  --shadow:0 2px 4px rgba(0,0,0,0.5);
-  background:var(--bg);
-  color:var(--text);
-}
-body{margin:0;font-family:sans-serif;background:var(--bg);color:var(--text);} 
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f5f5f5;color:#222;}
 .hidden{display:none;}
-header.banner{background:var(--primary);color:var(--accent);text-align:center;padding:1rem;}
-nav.bottom{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--accent);box-shadow:var(--shadow);} 
-nav.bottom button{flex:1;padding:0.5rem;border:none;background:none;cursor:pointer;color:var(--text);} 
-button{cursor:pointer;border:none;border-radius:8px;padding:0.5rem 1rem;background:var(--primary);color:var(--accent);box-shadow:var(--shadow);} 
-button:disabled{opacity:0.5;cursor:not-allowed;}
-.big-btn{width:100%;margin:0.5rem 0;font-size:1.25rem;} 
-.small-btn{font-size:0.9rem;margin:0.25rem 0;} 
-.court{margin-bottom:1.5rem;} 
-.slots{display:flex;flex-wrap:wrap;gap:0.5rem;} 
-.slot{flex:1 1 calc(50% - 0.5rem);background:var(--accent);padding:0.5rem;border-radius:6px;box-shadow:var(--shadow);} 
-.badge{padding:2px 4px;border-radius:4px;font-size:0.75rem;color:var(--accent);} 
-.badge.price{background:#4caf50;} 
-.badge.duration{background:#555;} 
-#toast{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:0.5rem 1rem;border-radius:4px;opacity:0;transition:opacity .3s;z-index:1000;} 
-#toast.show{opacity:1;} 
-/* admin planning */
-#adminGrid{overflow:auto;border:1px solid #ccc;position:relative;} 
-#adminGrid .grid{display:grid;position:relative;} 
-.time-col{background:#eee;z-index:2;} 
-.court-col{border-left:1px solid #ccc;position:relative;} 
-.time-slot{height:var(--cell);border-bottom:1px solid #ddd;font-size:0.7rem;padding-left:2px;} 
-.booking{position:absolute;border-radius:6px;color:#fff;padding:2px 4px;font-size:0.75rem;box-shadow:var(--shadow);cursor:pointer;overflow:hidden;} 
-.booking.padel{background:var(--padel);} 
-.booking.tennis{background:var(--tennis);} 
-.booking.football{background:var(--foot);} 
-#adminToolbar{display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.5rem;align-items:center;} 
-#adminToolbar input[type="date"]{font-size:1rem;} 
-#adminStats{margin-top:0.5rem;font-size:0.9rem;} 
+#toolbar{padding:.5rem;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.1);position:sticky;top:0;z-index:10;display:flex;gap:.5rem;align-items:center;}
+#clientView .court{margin:1rem;}
+.slot-card{display:flex;align-items:center;justify-content:space-between;background:#fff;padding:.5rem;border-radius:6px;box-shadow:0 2px 4px rgba(0,0,0,.1);margin:.25rem 0;}
+.slot-card .icon{margin-right:.5rem;}
+.slot-card .badge{background:#1976d2;color:#fff;padding:.25rem .5rem;border-radius:4px;margin:0 .5rem;}
+#adminView{position:relative;height:600px;overflow:auto;background:#fff;margin:1rem;border:1px solid #ccc;}
+#timeline{position:relative;display:flex;}
+.time-column{width:60px;flex-shrink:0;background:#fafafa;border-right:1px solid #ddd;}
+.time-label{height:40px;line-height:40px;font-size:12px;border-bottom:1px solid #eee;padding-left:4px;}
+.court-column{position:relative;flex:1;border-right:1px solid #ddd;}
+.court-header{position:sticky;top:0;background:#fff;border-bottom:1px solid #ddd;text-align:center;font-weight:bold;}
+.hour-line{position:absolute;left:0;right:0;height:1px;background:#ccc;}
+.booking{position:absolute;background:#1976d2;color:#fff;border-radius:4px;padding:2px 4px;font-size:12px;cursor:grab;user-select:none;}
+.booking.dragging{opacity:.7;}
+.booking.invalid{background:#b71c1c;}
+.popover{position:absolute;background:#fff;border:1px solid #ccc;border-radius:4px;padding:.5rem;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,.2);}
+#toast{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:.5rem 1rem;border-radius:4px;opacity:0;transition:opacity .3s;}
+#toast.show{opacity:1;}
 </style>
 </head>
 <body>
-<header class="banner"><h1 id="clubName">Tennis Club Les Acacias</h1></header>
-<main>
-<section id="home" class="view">
-  <button id="toReserve" class="big-btn">Réserver un terrain</button>
-  <button id="toEvents" class="big-btn">Événements à venir (<span id="eventCount">0</span>)</button>
-  <button id="toContact" class="big-btn">Contacter le club</button>
-  <button id="toMy" class="big-btn">Mes réservations</button>
-  <button id="toAccount" class="big-btn">Mon compte</button>
-  <button id="toAdmin" class="big-btn">Admin</button>
-</section>
-
-<section id="booking" class="view hidden">
-  <div class="breadcrumb"><button class="small-btn backHome">Accueil</button> &gt; <span id="breadcrumbSport"></span></div>
-  <div class="date-nav"><button id="prevDay">&lt;</button><input type="date" id="dateInput"><button id="nextDay">&gt;</button><button id="todayBtn">Aujourd'hui</button></div>
-  <div id="courtsContainer"></div>
-</section>
-
-<section id="myBookings" class="view hidden">
-  <div class="breadcrumb"><button class="small-btn backHome">Accueil</button> &gt; Mes réservations</div>
-  <ul id="bookingList"></ul>
-</section>
-
-<section id="events" class="view hidden">
-  <div class="breadcrumb"><button class="small-btn backHome">Accueil</button> &gt; Événements</div>
-  <table id="eventsTable"><thead><tr><th>Date</th><th>Nom</th><th>Type</th><th>Frais</th><th></th></tr></thead><tbody></tbody></table>
-</section>
-
-<section id="account" class="view hidden">
-  <div class="breadcrumb"><button class="small-btn backHome">Accueil</button> &gt; Mon compte</div>
-  <form id="profileForm">
-    <label>Nom<br><input id="profileName" required></label><br>
-    <label>Email<br><input type="email" id="profileEmail" required></label><br>
-    <label>Téléphone<br><input id="profilePhone" required></label><br>
-    <label><input type="checkbox" id="darkToggle"> Mode sombre</label><br>
-    <button type="submit">Enregistrer</button>
-  </form>
-</section>
-
-<section id="admin" class="view hidden">
-  <div class="breadcrumb"><button class="small-btn backHome">Accueil</button> &gt; Admin</div>
-  <div id="adminToolbar">
-    <button id="adminPrev">&lt;</button>
-    <input type="date" id="adminDate">
-    <button id="adminNext">&gt;</button>
-    <select id="adminSportFilter"><option value="all">Tous</option><option value="Padel">Padel</option><option value="Tennis">Tennis</option><option value="Football">Football</option></select>
-    <input id="adminSearch" placeholder="Recherche...">
-    <button id="exportCsv">Export CSV</button>
-  </div>
-  <div id="adminGrid"></div>
-  <div id="adminStats"></div>
-</section>
-</main>
-
-<dialog id="sportDialog"><h2>Choisissez un sport</h2><div><button class="sportSelect" data-sport="Padel">Padel</button><button class="sportSelect" data-sport="Tennis">Tennis</button><button class="sportSelect" data-sport="Football">Football</button></div><button class="small-btn" onclick="sportDialog.close()">Fermer</button></dialog>
-<dialog id="confirmDialog"><form id="confirmForm"><div id="confirmText"></div><label id="playerField" class="hidden">Joueurs<br><input id="playerCount" type="number" min="1" value="2"></label><button type="submit">Confirmer</button></form></dialog>
-<dialog id="adminDialog"><form id="adminForm"><h3 id="adminFormTitle"></h3><label>Début<br><select id="adminStart"></select></label><label>Durée<br><select id="adminDuration"><option value="90">1h30</option><option value="120">2h</option></select></label><label>Nom<br><input id="adminName" required></label><label>Téléphone<br><input id="adminPhone"></label><label>Email<br><input type="email" id="adminEmail"></label><label id="adminPlayersLabel" class="hidden">Joueurs<br><input type="number" id="adminPlayers" min="1" value="2"></label><label>Status<br><select id="adminStatus"><option>confirmée</option><option>en cours</option><option>terminée</option><option>annulée</option><option>no-show</option></select></label><label>Score<br><input id="adminScore"></label><div style="margin-top:0.5rem;"><button id="adminSave" type="submit">Enregistrer</button><button type="button" id="adminDelete" class="small-btn" style="background:#e53935;color:#fff;margin-left:0.5rem;">Supprimer</button></div></form></dialog>
-
-<dialog id="contactDialog"><div style="padding:1rem;"><h3>Contact</h3><p>Téléphone : <a href="tel:+33600000000">+33 6 00 00 00 00</a></p><p>Email : <a href="mailto:contact@les-acacias.fr">contact@les-acacias.fr</a></p><p>Adresse : Chemin des Acacias, 06800</p><button onclick="contactDialog.close()">Fermer</button></div></dialog>
-
-<div id="toast" role="status" aria-live="polite"></div>
+<div id="toolbar">
+<button id="showClient">Client</button>
+<button id="showAdmin">Admin</button>
+<input type="date" id="datePicker">
+<input type="text" id="search" placeholder="Recherche nom">
+<button id="exportCsv">Export CSV</button>
+</div>
+<div id="clientView"></div>
+<div id="adminView" class="hidden"><div id="timeline"></div></div>
+<div id="popover" class="popover hidden"></div>
+<div id="toast"></div>
 <script>
-/* ==== Données de départ ==== */
-const CLUB = { name: "Tennis Club Les Acacias", phone:"+33 6 00 00 00 00", email:"contact@les-acacias.fr", address:"Chemin des Acacias, 06800", website:"https://les-acacias-tennis-padel-foot.com" };
-const OPENING = { start: "08:00", end: "22:30", stepMinutes: 30 };
-const SPORTS = {
-  "Padel":   { courts: [{id:"Padel 1"},{id:"Padel 2"},{id:"Padel 3"},{id:"Padel 4"},{id:"Padel 5"},{id:"Padel 6"}], durations:[90,120],
-               pricingFn: ({startTimeISO, minutes}) => dynamicPadelPrice(startTimeISO, minutes) },
-  "Tennis":  { courts: [{id:"Tennis 1"},{id:"Tennis 2"},{id:"Tennis 3"},{id:"Tennis 4"}], durations:[90,120],
-               pricingFn: ({minutes, players=2}) => (8 * (minutes/60) * players) },
-  "Football":{ courts: [{id:"Foot 1"},{id:"Foot 2"},{id:"Foot 3"}], durations:[90,120],
-               pricingFn: ({minutes}) => (50 * (minutes/60)) }
-};
-const LIMITS = { maxActiveBookingsPerUser: 4, cancelCutoffHours: 24 };
-const EVENTS = [
-  { date:"2025-09-27", title:"P100 Hommes", type:"Tournoi", fee:20, sport:"Padel" },
-  { date:"2025-10-04", title:"P100 Femmes", type:"Tournoi", fee:20, sport:"Padel" },
-  { date:"2025-10-25", title:"P100 Mixte",  type:"Tournoi", fee:20, sport:"Padel" },
-  { date:"2025-10-26", title:"P250 Femmes", type:"Tournoi", fee:20, sport:"Padel" },
-  { date:"2025-11-01", title:"P500 Hommes", type:"Tournoi", fee:20, sport:"Padel" },
-  { date:"2025-11-02", title:"P25 Hommes",  type:"Tournoi", fee:20, sport:"Padel" },
-  { date:"2025-11-15", title:"P25 Femmes",  type:"Tournoi", fee:20, sport:"Padel" }
-];
-/* ==== Utilitaires ==== */
-function storageGet(key,def){return JSON.parse(localStorage.getItem(key) || JSON.stringify(def));}
-function storageSet(key,val){localStorage.setItem(key,JSON.stringify(val));}
-if(!localStorage.getItem('events')) storageSet('events', EVENTS);
-if(!localStorage.getItem('bookings')){
-  const demo=[
-    {id:'b1',sport:'Padel',courtId:'Padel 1',date:'2025-05-10',startISO:'2025-05-10T16:30:00',endISO:'2025-05-10T18:00:00',minutes:90,players:null,price:9.5,createdBy:'admin',customer:{name:'Alice'},status:'confirmée'},
-    {id:'b2',sport:'Tennis',courtId:'Tennis 2',date:'2025-05-10',startISO:'2025-05-10T10:00:00',endISO:'2025-05-10T11:30:00',minutes:90,players:2,price:24,createdBy:'admin',customer:{name:'Bob'},status:'confirmée'},
-    {id:'b3',sport:'Football',courtId:'Foot 1',date:'2025-05-10',startISO:'2025-05-10T19:00:00',endISO:'2025-05-10T21:00:00',minutes:120,players:null,price:100,createdBy:'admin',customer:{name:'Club'},status:'confirmée'}
-  ];
-  storageSet('bookings',demo);
-}
-function loadProfile(){return storageGet('profile',{});} 
-function saveProfile(p){storageSet('profile',p);} 
-function loadPrefs(){return storageGet('prefs',{});} 
-function savePrefs(p){storageSet('prefs',p);} 
-function loadBookings(){return storageGet('bookings',[]);} 
-function saveBookings(arr){storageSet('bookings',arr);} 
-function loadBookingsByDate(date){return loadBookings().filter(b=>b.date===date);} 
-function saveBooking(b){const arr=loadBookings();arr.push(b);saveBookings(arr);} 
-function updateBooking(b){const arr=loadBookings();const i=arr.findIndex(x=>x.id===b.id);if(i>-1){arr[i]=b;saveBookings(arr);} }
-function deleteBooking(id){saveBookings(loadBookings().filter(b=>b.id!==id));}
-function generateTimeScale(open){const res=[];let cur=toMinutes(open.start);const end=toMinutes(open.end);while(cur<end){res.push(fromMinutes(cur));cur+=open.stepMinutes;}return res;}
-function toMinutes(hm){const [h,m]=hm.split(':').map(Number);return h*60+m;}
-function fromMinutes(m){const h=Math.floor(m/60).toString().padStart(2,'0');const mi=(m%60).toString().padStart(2,'0');return `${h}:${mi}`;}
-function snapToStep(date,step){const ms=step*60000;return new Date(Math.floor(date.getTime()/ms)*ms);} 
-function addMinutes(date,n){return new Date(date.getTime()+n*60000);} 
-function formatDate(iso){return new Date(iso).toLocaleDateString('fr-FR');}
-function formatTime(iso){return new Date(iso).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});} 
-function dynamicPadelPrice(startISO,minutes){const start=new Date(startISO);const end=addMinutes(start,minutes);const split=new Date(start);split.setHours(17,0,0,0);const rate1=5,rate2=6;let price=0;if(end<=split){price=rate1*(minutes/60);}else if(start>=split){price=rate2*(minutes/60);}else{const before=(split-start)/60000;const after=minutes-before;price=rate1*(before/60)+rate2*(after/60);}return Math.round(price*100)/100;}
-function priceFor(sport,startISO,minutes,players){if(sport==='Padel')return dynamicPadelPrice(startISO,minutes);if(sport==='Tennis')return 8*(minutes/60)*(players||2);if(sport==='Football')return 50*(minutes/60);return 0;}
-/* ==== Validations ==== */
-function isOverlapping(a,b){return Math.max(a.start,b.start)<Math.min(a.end,b.end);} 
-function createsOneHourGap(candidate,existing,opening){const list=existing.slice();list.push(candidate);list.sort((x,y)=>x.start-y.start);let prev=toMinutes(opening.start);for(const item of list){if(item.start-prev===60)return true;prev=item.end;}return (toMinutes(opening.end)-prev===60);} 
-function withinOpening(cand,opening){return cand.start>=toMinutes(opening.start)&&cand.end<=toMinutes(opening.end);} 
-function notInPast(startISO){return new Date(startISO)>new Date();}
-function userQuotaOK(email){const now=new Date();return loadBookings().filter(b=>b.customer.email===email && new Date(b.startISO)>now && b.status!=='annulée').length < LIMITS.maxActiveBookingsPerUser;}
-/* ==== UI helpers ==== */
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);} 
-function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');}
-/* ==== Client Réservation ==== */
-let currentSport=null;document.getElementById('toReserve').onclick=()=>sportDialog.showModal();
-Array.from(document.getElementsByClassName('sportSelect')).forEach(btn=>btn.onclick=e=>{currentSport=e.target.dataset.sport;document.getElementById('breadcrumbSport').textContent=currentSport;document.getElementById('dateInput').value=new Date().toISOString().slice(0,10);renderClientDay();sportDialog.close();showView('booking');});
-function renderClientDay(){const date=document.getElementById('dateInput').value;const courts=SPORTS[currentSport].courts;const container=document.getElementById('courtsContainer');container.innerHTML='';courts.forEach(c=>{const div=document.createElement('div');div.className='court';div.innerHTML=`<h3>${c.id}</h3>`;const slots=document.createElement('div');slots.className='slots';const bookings=loadBookings().filter(b=>b.date===date && b.courtId===c.id);const times=generateTimeScale(OPENING);SPORTS[currentSport].durations.forEach(dur=>{times.forEach(time=>{const start=toMinutes(time);const candidate={start,end:start+dur};if(candidate.end>toMinutes(OPENING.end))return;const overlap=bookings.some(b=>isOverlapping(candidate,{start:toMinutes(b.startISO.slice(11,16)),end:toMinutes(b.endISO.slice(11,16))}));if(overlap) return; if(createsOneHourGap(candidate,bookings.map(b=>({start:toMinutes(b.startISO.slice(11,16)),end:toMinutes(b.endISO.slice(11,16))})),OPENING)) return; const btn=document.createElement('button');btn.className='slot';const startISO=`${date}T${time}`;const price=priceFor(currentSport,startISO,dur, currentSport==='Tennis'?2:undefined);btn.innerHTML=`${time}<div class="badges"><span class="badge duration">${dur===90?'1h30':'2h'}</span><span class="badge price">${price.toFixed(2)} €</span></div>`;btn.onclick=()=>{confirmDialog.dataset.sport=currentSport;confirmDialog.dataset.court=c.id;confirmDialog.dataset.startISO=startISO;confirmDialog.dataset.minutes=dur;confirmDialog.dataset.price=price;document.getElementById('confirmText').textContent=`${c.id} - ${time} (${dur===90?'1h30':'2h'})`;document.getElementById('playerField').classList.toggle('hidden',currentSport!=='Tennis');confirmDialog.showModal();};slots.appendChild(btn);});});div.appendChild(slots);container.appendChild(div);});}
+(function(){
+const dayStart=timeToMinutes("08:00");
+const dayEnd=timeToMinutes("22:30");
+const step=30; // minutes
+const cellH=40; // px per 30min
+const durations=[60,90,120];
+const courts=Array.from({length:4},(_,i)=>({id:`Padel ${i+1}`}));
+let state=loadState();
+let currentDate=new Date().toISOString().slice(0,10);
+const timeline=document.getElementById('timeline');
+const clientView=document.getElementById('clientView');
+const adminView=document.getElementById('adminView');
+const popover=document.getElementById('popover');
+const toastBox=document.getElementById('toast');
 
-document.getElementById('dateInput').onchange=renderClientDay;document.getElementById('prevDay').onclick=()=>{const d=new Date(dateInput.value);d.setDate(d.getDate()-1);dateInput.value=d.toISOString().slice(0,10);renderClientDay();};document.getElementById('nextDay').onclick=()=>{const d=new Date(dateInput.value);d.setDate(d.getDate()+1);dateInput.value=d.toISOString().slice(0,10);renderClientDay();};document.getElementById('todayBtn').onclick=()=>{dateInput.value=new Date().toISOString().slice(0,10);renderClientDay();};
+document.getElementById('datePicker').value=currentDate;
 
-document.getElementById('confirmForm').onsubmit=e=>{e.preventDefault();const sport=confirmDialog.dataset.sport;const courtId=confirmDialog.dataset.court;const startISO=confirmDialog.dataset.startISO;const minutes=parseInt(confirmDialog.dataset.minutes);const price=parseFloat(confirmDialog.dataset.price);const players=currentSport==='Tennis'?parseInt(document.getElementById('playerCount').value)||2:null;const profile=loadProfile();const customer={name:profile.name||'Anonyme',phone:profile.phone,email:profile.email};if(!notInPast(startISO)){toast('Créneau dans le passé');return;}if(customer.email && !userQuotaOK(customer.email)){toast('Limite de réservations atteinte');return;}const candidate={start:toMinutes(startISO.slice(11,16)),end:toMinutes(startISO.slice(11,16))+minutes};const courtBookings=loadBookings().filter(b=>b.date===startISO.slice(0,10)&&b.courtId===courtId);if(courtBookings.some(b=>isOverlapping(candidate,{start:toMinutes(b.startISO.slice(11,16)),end:toMinutes(b.endISO.slice(11,16))}))){toast('Chevauchement sur '+courtId);return;}if(createsOneHourGap(candidate,courtBookings.map(b=>({start:toMinutes(b.startISO.slice(11,16)),end:toMinutes(b.endISO.slice(11,16))})),OPENING)){toast('La modification crée un trou d\'1h');return;}const id='b'+Date.now();const endISO=addMinutes(new Date(startISO),minutes).toISOString().slice(0,16);saveBooking({id,sport,courtId,date:startISO.slice(0,10),startISO,endISO,minutes,players,price,createdBy:'client',customer,status:'confirmée'});confirmDialog.close();toast('Réservation confirmée');renderClientDay();renderBookings();renderAdminGrid();};
-/* ==== Mes réservations ==== */
-function renderBookings(){const list=document.getElementById('bookingList');list.innerHTML='';const now=new Date();loadBookings().sort((a,b)=>new Date(a.startISO)-new Date(b.startISO)).forEach(b=>{const li=document.createElement('li');li.textContent=`${b.sport} ${b.courtId} ${formatDate(b.startISO)} ${formatTime(b.startISO)} (${b.minutes===90?'1h30':'2h'}) - ${b.price.toFixed(2)} €`;const btn=document.createElement('button');btn.textContent='Annuler';const diff=(new Date(b.startISO)-now)/3600000;if(diff>LIMITS.cancelCutoffHours){btn.onclick=()=>{deleteBooking(b.id);renderBookings();renderClientDay();renderAdminGrid();};}else{btn.disabled=true;btn.title='Annulation impossible à moins de 24h';}li.appendChild(document.createElement('br'));li.appendChild(btn);list.appendChild(li);});}
-/* ==== Événements ==== */
-function renderEvents(){const events=storageGet('events',[]);document.getElementById('eventCount').textContent=events.length;const tbody=document.querySelector('#eventsTable tbody');tbody.innerHTML='';events.forEach(ev=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${formatDate(ev.date)}</td><td>${ev.title}</td><td>${ev.type}</td><td>${ev.fee} €</td><td><button class="small-btn" disabled>Inscription</button></td>`;tbody.appendChild(tr);});}
-/* ==== Profil ==== */
-function initProfile(){const p=loadProfile();profileName.value=p.name||'';profileEmail.value=p.email||'';profilePhone.value=p.phone||'';const prefs=loadPrefs();document.body.classList.toggle('dark',prefs.theme==='dark');darkToggle.checked=prefs.theme==='dark';}
-profileForm.onsubmit=e=>{e.preventDefault();saveProfile({name:profileName.value,email:profileEmail.value,phone:profilePhone.value});const prefs=loadPrefs();prefs.theme=darkToggle.checked?'dark':'light';savePrefs(prefs);document.body.classList.toggle('dark',prefs.theme==='dark');toast('Profil sauvegardé');};
-/* ==== Admin ==== */
-function renderAdminGrid(){const date=document.getElementById('adminDate').value;const sportFilter=document.getElementById('adminSportFilter').value;const search=document.getElementById('adminSearch').value.toLowerCase();const container=document.getElementById('adminGrid');container.innerHTML='';const allCourts=[...SPORTS.Padel.courts,...SPORTS.Tennis.courts,...SPORTS.Football.courts];const times=generateTimeScale(OPENING);const grid=document.createElement('div');grid.className='grid';grid.style.gridTemplateColumns=`60px repeat(${allCourts.length},1fr)`;grid.style.height=`${times.length*parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cell'))}px`;container.appendChild(grid);
-// time column
-const timeCol=document.createElement('div');timeCol.className='time-col';times.forEach(t=>{const div=document.createElement('div');div.className='time-slot';div.textContent=t;timeCol.appendChild(div);});grid.appendChild(timeCol);
-let revenue=0,count=0;allCourts.forEach(c=>{const col=document.createElement('div');col.className='court-col';col.dataset.court=c.id;col.dataset.sport=c.id.startsWith('Padel')?'Padel':c.id.startsWith('Tennis')?'Tennis':'Football';col.style.height=timeCol.style.height;col.onclick=e=>{if(e.target!==col)return;const y=e.offsetY;const step=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cell'));const minutes=toMinutes(OPENING.start)+Math.floor(y/step)*OPENING.stepMinutes;openAdminForm({mode:'create',court:c.id,sport:col.dataset.sport,start:fromMinutes(minutes),date});};grid.appendChild(col);const bookings=loadBookings().filter(b=>b.courtId===c.id && b.date===date);bookings.forEach(b=>{if(sportFilter!=='all' && b.sport!==sportFilter)return;const searchText=`${b.customer.name||''} ${b.customer.email||''} ${b.customer.phone||''}`.toLowerCase();if(search && !searchText.includes(search)) return;const div=document.createElement('div');div.className=`booking ${b.sport.toLowerCase()}`;div.style.top=`${(toMinutes(b.startISO.slice(11,16))-toMinutes(OPENING.start))/OPENING.stepMinutes*parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cell'))}px`;div.style.height=`${b.minutes/OPENING.stepMinutes*parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cell'))}px`;div.textContent=`${formatTime(b.startISO)}-${formatTime(b.endISO)} ${b.customer.name||''}`;div.onclick=e=>{e.stopPropagation();openAdminForm({mode:'edit',booking:b});};col.appendChild(div);if(b.status!=='annulée'){revenue+=b.price;count++;}});});document.getElementById('adminStats').textContent=`${count} créneaux, ${revenue.toFixed(2)} €`;
-}
-function openAdminForm(opts){adminForm.reset();if(opts.mode==='create'){adminFormTitle.textContent='Nouvelle réservation';adminDelete.style.display='none';adminForm.dataset.mode='create';adminForm.dataset.court=opts.court;adminForm.dataset.sport=opts.sport;adminForm.dataset.id='';adminPlayersLabel.classList.toggle('hidden',opts.sport!=='Tennis');fillStartSelect(opts.start);document.getElementById('adminDate').value=opts.date;}else{adminFormTitle.textContent='Modifier';adminDelete.style.display='inline-block';const b=opts.booking;adminForm.dataset.mode='edit';adminForm.dataset.id=b.id;adminForm.dataset.court=b.courtId;adminForm.dataset.sport=b.sport;fillStartSelect(b.startISO.slice(11,16));adminDuration.value=b.minutes;adminName.value=b.customer.name||'';adminPhone.value=b.customer.phone||'';adminEmail.value=b.customer.email||'';adminPlayersLabel.classList.toggle('hidden',b.sport!=='Tennis');adminPlayers.value=b.players||2;adminStatus.value=b.status;adminScore.value=b.score||'';}
-adminDialog.showModal();}
-function fillStartSelect(selected){const date=document.getElementById('adminDate').value;adminStart.innerHTML='';generateTimeScale(OPENING).forEach(t=>{const opt=document.createElement('option');opt.value=t;opt.textContent=t;opt.selected=(t===selected);adminStart.appendChild(opt);});}
-adminForm.onsubmit=e=>{e.preventDefault();const mode=adminForm.dataset.mode;const sport=adminForm.dataset.sport;const court=adminForm.dataset.court;const start=adminStart.value;const minutes=parseInt(adminDuration.value);const date=document.getElementById('adminDate').value;const startISO=`${date}T${start}`;const endISO=addMinutes(new Date(startISO),minutes).toISOString().slice(0,16);const price=priceFor(sport,startISO,minutes, sport==='Tennis'?parseInt(adminPlayers.value):undefined);const customer={name:adminName.value,phone:adminPhone.value,email:adminEmail.value};const candidate={start:toMinutes(start),end:toMinutes(start)+minutes};const existing=loadBookings().filter(b=>b.date===date && b.courtId===court && (mode==='create' || b.id!==adminForm.dataset.id));if(!withinOpening(candidate,OPENING)){toast('Hors ouverture');return;}if(existing.some(b=>isOverlapping(candidate,{start:toMinutes(b.startISO.slice(11,16)),end:toMinutes(b.endISO.slice(11,16))}))){toast('Chevauchement sur '+court);return;}if(createsOneHourGap(candidate,existing.map(b=>({start:toMinutes(b.startISO.slice(11,16)),end:toMinutes(b.endISO.slice(11,16))})),OPENING)){toast('La modification crée un trou d\'1h');return;}if(customer.email && !userQuotaOK(customer.email)){toast('Limite de résas pour cet utilisateur');return;}const booking={id:mode==='edit'?adminForm.dataset.id:'b'+Date.now(),sport,courtId:court,date,startISO,endISO,minutes,players:sport==='Tennis'?parseInt(adminPlayers.value):null,price,createdBy:'admin',customer,status:adminStatus.value,score:adminScore.value};if(mode==='edit'){updateBooking(booking);}else{saveBooking(booking);}adminDialog.close();renderAdminGrid();renderClientDay();renderBookings();};adminDelete.onclick=()=>{if(adminForm.dataset.id){deleteBooking(adminForm.dataset.id);adminDialog.close();renderAdminGrid();renderClientDay();renderBookings();}}
-/* ==== export CSV ==== */
-document.getElementById('exportCsv').onclick=()=>{const date=document.getElementById('adminDate').value;const rows=['id,sport,court,date,start,end,minutes,client,price,status,score'];loadBookingsByDate(date).forEach(b=>{rows.push([b.id,b.sport,b.courtId,b.date,b.startISO,b.endISO,b.minutes,b.customer.name||'',b.price,b.status,b.score||''].map(x=>`"${x}"`).join(','));});const blob=new Blob([rows.join('\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`bookings-${date}.csv`;a.click();};
-/* ==== Navigation ==== */
-document.querySelectorAll('.backHome').forEach(b=>b.onclick=()=>showView('home'));
-['toEvents','toMy','toAccount','toAdmin'].forEach(id=>document.getElementById(id).onclick=()=>{if(id==='toEvents'){renderEvents();showView('events');}if(id==='toMy'){renderBookings();showView('myBookings');}if(id==='toAccount'){initProfile();showView('account');}if(id==='toAdmin'){adminDate.value=new Date().toISOString().slice(0,10);renderAdminGrid();showView('admin');}});
-document.getElementById('adminPrev').onclick=()=>{const d=new Date(adminDate.value);d.setDate(d.getDate()-1);adminDate.value=d.toISOString().slice(0,10);renderAdminGrid();};document.getElementById('adminNext').onclick=()=>{const d=new Date(adminDate.value);d.setDate(d.getDate()+1);adminDate.value=d.toISOString().slice(0,10);renderAdminGrid();};document.getElementById('adminDate').onchange=renderAdminGrid;document.getElementById('adminSportFilter').onchange=renderAdminGrid;document.getElementById('adminSearch').oninput=renderAdminGrid;
-/* init */
-renderEvents();initProfile();
+document.getElementById('showClient').onclick=()=>{clientView.classList.remove('hidden');adminView.classList.add('hidden');renderClient();};
+document.getElementById('showAdmin').onclick=()=>{adminView.classList.remove('hidden');clientView.classList.add('hidden');renderAdmin();};
+document.getElementById('datePicker').onchange=e=>{currentDate=e.target.value;render();};
+document.getElementById('search').oninput=renderAdmin;
+document.getElementById('exportCsv').onclick=exportCsv;
+
+document.addEventListener('click',e=>{if(!popover.contains(e.target))popover.classList.add('hidden');});
+
+render();
+
+function render(){renderClient();renderAdmin();}
+
+function timeToMinutes(t){const [h,m]=t.split(':').map(Number);return h*60+m;}
+function minutesToTime(m){const h=String(Math.floor(m/60)).padStart(2,'0');const min=String(m%60).padStart(2,'0');return `${h}:${min}`;}
+function getPrice(start,dur){let rate=4;if(start<17*60)rate=5;else if(start<20*60)rate=6;return Math.round(rate*dur/60);}
+function detectCollision(list,c){return list.some(r=>c.start<r.end && c.end>r.start);}
+function violatesOneHourGapRule(list,c){const arr=[...list,c].sort((a,b)=>a.start-b.start);for(let i=0;i<arr.length-1;i++){if(arr[i+1].start-arr[i].end===60)return true;}return false;}
+function generateAvailability(reservations,courts){const avail={};courts.forEach(ct=>{const res=reservations.filter(r=>r.court===ct.id).map(r=>({start:r.start,end:r.end}));const slots=[];for(let start=dayStart;start<=dayEnd-durations[0];start+=step){durations.forEach(dur=>{const cand={start,end:start+dur};if(cand.end>dayEnd)return;if(detectCollision(res,cand))return;if(violatesOneHourGapRule(res,cand))return;slots.push({start:cand.start,duration:dur,price:getPrice(cand.start,dur)});});}avail[ct.id]=slots;});return avail;}
+function saveState(){localStorage.setItem('reservations',JSON.stringify(state));}
+function loadState(){return JSON.parse(localStorage.getItem('reservations')||'{}');}
+function renderClient(){clientView.innerHTML='';const reservations=state[currentDate]||[];const avail=generateAvailability(reservations,courts);courts.forEach(c=>{const div=document.createElement('div');div.className='court';const h=document.createElement('h3');h.textContent=c.id;div.appendChild(h);avail[c.id].forEach(slot=>{const card=document.createElement('div');card.className='slot-card';const left=document.createElement('span');left.className='icon';left.textContent='🕒 '+minutesToTime(slot.start);const badge=document.createElement('span');badge.className='badge';badge.textContent=(slot.duration===60?'1h':slot.duration===90?'1h30':'2h');const price=document.createElement('span');price.textContent=`${slot.price} €`;const btn=document.createElement('button');btn.textContent='Réserver';btn.onclick=()=>{const res={id:'r'+Date.now(),name:'aaa',court:c.id,start:slot.start,end:slot.start+slot.duration};if(!state[currentDate])state[currentDate]=[];state[currentDate].push(res);saveState();render();};card.append(left,badge,price,btn);div.appendChild(card);});clientView.appendChild(div);});}
+function renderAdmin(){timeline.innerHTML='';const reservations=(state[currentDate]||[]).slice();const query=document.getElementById('search').value.toLowerCase();const timeCol=document.createElement('div');timeCol.className='time-column';for(let t=dayStart;t<dayEnd;t+=step){const lab=document.createElement('div');lab.className='time-label';lab.textContent=t%60===0?minutesToTime(t):'';timeCol.appendChild(lab);}timeline.appendChild(timeCol);courts.forEach(ct=>{const col=document.createElement('div');col.className='court-column';col.dataset.court=ct.id;const header=document.createElement('div');header.className='court-header';header.textContent=ct.id;col.appendChild(header);for(let t=dayStart;t<dayEnd;t+=60){const line=document.createElement('div');line.className='hour-line';line.style.top=((t-dayStart)/step*cellH)+'px';col.appendChild(line);}const res=reservations.filter(r=>r.court===ct.id);res.forEach(r=>{if(query && !r.name.toLowerCase().includes(query))return;const div=document.createElement('div');div.className='booking';div.tabIndex=0;div.textContent=`${minutesToTime(r.start)}-${minutesToTime(r.end)} ${r.name}`;div.style.top=((r.start-dayStart)/step*cellH)+'px';div.style.height=((r.end-r.start)/step*cellH)+'px';enableDrag(div,r);div.addEventListener('click',e=>openPopover(e,r));col.appendChild(div);});timeline.appendChild(col);});}
+function enableDrag(el,res){let startX,startY,startCourtIdx,courtWidth,origStart,raf=null,dx=0,dy=0;const columns=Array.from(timeline.querySelectorAll('.court-column'));el.addEventListener('pointerdown',e=>{e.preventDefault();el.setPointerCapture(e.pointerId);startX=e.clientX;startY=e.clientY;origStart=res.start;startCourtIdx=columns.indexOf(el.parentElement);courtWidth=el.parentElement.offsetWidth;el.classList.add('dragging');el.addEventListener('pointermove',move);el.addEventListener('pointerup',up);});function move(e){dx=e.clientX-startX;dy=e.clientY-startY;if(!raf)raf=requestAnimationFrame(apply);}function apply(){raf=null;const minutes=Math.round(dy/cellH)*step;const courtShift=Math.round(dx/courtWidth);const newStart=origStart+minutes;const newCourtIdx=Math.max(0,Math.min(courts.length-1,startCourtIdx+courtShift));const candidate={start:newStart,end:newStart+(res.end-res.start)};const list=(state[currentDate]||[]).filter(r=>r.id!==res.id && r.court===courts[newCourtIdx].id).map(r=>({start:r.start,end:r.end}));let invalid=false;if(newStart<dayStart || candidate.end>dayEnd)invalid=true;else if(detectCollision(list,candidate))invalid=true;else if(violatesOneHourGapRule(list,candidate))invalid=true;el.style.transform=`translate(${courtShift*courtWidth}px,${minutes/step*cellH}px)`;el.classList.toggle('invalid',invalid);el.dataset.newStart=newStart;el.dataset.newCourtIdx=newCourtIdx;}function up(e){el.releasePointerCapture(e.pointerId);el.classList.remove('dragging');const invalid=el.classList.contains('invalid');el.classList.remove('invalid');el.style.transform='';el.removeEventListener('pointermove',move);el.removeEventListener('pointerup',up);if(invalid){renderAdmin();return;}const minutes=parseInt(el.dataset.newStart);const newCourtIdx=parseInt(el.dataset.newCourtIdx);res.start=minutes;res.end=minutes+(res.end-res.start);res.court=courts[newCourtIdx].id;saveState();render();toast(`Réservation déplacée: ${res.court} • ${minutesToTime(res.start)}–${minutesToTime(res.end)}`);}el.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){moveBy(-step);}if(e.key==='ArrowDown'){moveBy(step);}if(e.key==='ArrowLeft'){changeCourt(-1);}if(e.key==='ArrowRight'){changeCourt(1);}});function moveBy(delta){const candidate={start:res.start+delta,end:res.end+delta};const list=(state[currentDate]||[]).filter(r=>r.id!==res.id && r.court===res.court).map(r=>({start:r.start,end:r.end}));if(candidate.start<dayStart||candidate.end>dayEnd) return;if(detectCollision(list,candidate)) return;if(violatesOneHourGapRule(list,candidate)) return;res.start+=delta;res.end+=delta;saveState();render();}
+function changeCourt(dir){const idx=courts.findIndex(c=>c.id===res.court)+dir;if(idx<0||idx>=courts.length)return;const list=(state[currentDate]||[]).filter(r=>r.id!==res.id && r.court===courts[idx].id).map(r=>({start:r.start,end:r.end}));const candidate={start:res.start,end:res.end};if(detectCollision(list,candidate))return;if(violatesOneHourGapRule(list,candidate))return;res.court=courts[idx].id;saveState();render();}}
+function openPopover(e,res){popover.innerHTML=`<div>${res.court} ${minutesToTime(res.start)}-${minutesToTime(res.end)}<br>${res.name}</div><div><button data-dur="60">1h</button><button data-dur="90">1h30</button><button data-dur="120">2h</button></div><button id="del">Supprimer</button>`;popover.style.left=e.pageX+'px';popover.style.top=e.pageY+'px';popover.classList.remove('hidden');popover.querySelectorAll('button[data-dur]').forEach(b=>{b.onclick=()=>{const newDur=parseInt(b.dataset.dur);const cand={start:res.start,end:res.start+newDur};const list=(state[currentDate]||[]).filter(r=>r.id!==res.id && r.court===res.court).map(r=>({start:r.start,end:r.end}));if(cand.end>dayEnd||detectCollision(list,cand)||violatesOneHourGapRule(list,cand))return;res.end=res.start+newDur;saveState();render();popover.classList.add('hidden');};});popover.querySelector('#del').onclick=()=>{state[currentDate]=state[currentDate].filter(r=>r.id!==res.id);saveState();render();popover.classList.add('hidden');};}
+function exportCsv(){const rows=['date,court,start,end,durationMin,price,name'];(state[currentDate]||[]).forEach(r=>{rows.push([currentDate,r.court,minutesToTime(r.start),minutesToTime(r.end),r.end-r.start,getPrice(r.start,r.end-r.start),r.name].join(','));});const blob=new Blob([rows.join('\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`reservations-${currentDate}.csv`;a.click();}
+function toast(msg){toastBox.textContent=msg;toastBox.classList.add('show');setTimeout(()=>toastBox.classList.remove('show'),2000);}
+if(!state[currentDate]){state[currentDate]=[];seed();saveState();}
+function seed(){function add(court,start,end){state[currentDate].push({id:'s'+Math.random(),name:'aaa',court,start:timeToMinutes(start),end:timeToMinutes(end)});}add('Padel 1','10:00','11:00');add('Padel 1','12:00','13:00');add('Padel 1','14:00','16:00');add('Padel 3','09:00','10:30');add('Padel 4','17:00','18:30');}
+})();
 </script>
 </body>
 </html>
